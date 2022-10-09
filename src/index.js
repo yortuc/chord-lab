@@ -5,6 +5,7 @@ import App from './App';
 import * as Tone from 'tone'
 import Bus from './Bus';
 import createChord from './createChord';
+import { chordProgressions, defaultCellValues, emptyCellValues } from './Consts';
 
 const WIDTH = 8;
 
@@ -17,11 +18,14 @@ const synths = [
   new Tone.Synth()
 ]
 
-const gain = new Tone.Gain(1.0);
-gain.toDestination();
+const autoFilter = new Tone.AutoFilter("4n").toDestination()
 
-synths.forEach(s => {
-  s.oscillator.type = 'triangle';
+
+const gain = new Tone.Gain(1.0);
+gain.connect(autoFilter)
+
+const setOscTypes = (type) => synths.forEach(s => {
+  s.oscillator.type = type;
   s.connect(gain)
 });
 
@@ -30,8 +34,24 @@ Tone.Transport.scheduleRepeat(repeat, '8n');
 const appState = {
   step: 0,
   isPlaying: false,
-  bars: [createChord("Em"), createChord("Am"), createChord("B7")]
+  progression: "Savrulan Adam",
+  instrument: {
+    oscillator: {
+      type: "triangle"
+    },
+    filters: [
+      {type: "auto", frequency: "4n"}
+    ]
+  },
+  bars: [
+    {chord: createChord("Em"), cellValues: [...defaultCellValues]},
+    {chord: createChord("Am"), cellValues: [...defaultCellValues]}, 
+    {chord: createChord("Em"), cellValues: [...defaultCellValues]},
+    {chord: createChord("B7"), cellValues: [...defaultCellValues]}
+  ]
 }
+
+setOscTypes(appState.instrument.oscillator.type)
 
 Bus.subscribe("app/togglePlay", () => {
   if(appState.isPlaying){
@@ -47,16 +67,43 @@ Bus.subscribe("app/togglePlay", () => {
 })
 
 Bus.subscribe("setCellValue", ({cellIndex, rowIndex, barIndex, value})=>{
-  const curRow = appState.bars[barIndex].rows[rowIndex]
-  let newRow  = Object.assign({}, curRow)
-  newRow.cells[cellIndex] = value
-  appState.bars[barIndex].rows[rowIndex] = newRow
+  const curRow = appState.bars[barIndex].cellValues[rowIndex]
+  let newRow  = [...curRow]
+  newRow[cellIndex] = value
+  appState.bars[barIndex].cellValues[rowIndex] = newRow
   renderApp(appState)
 })
 
 Bus.subscribe("addBar", () => {
-  let newBars = [...appState.bars, createChord("Em")]
+  let newBars = [...appState.bars, {chord: createChord("Em"), cellValues: [...defaultCellValues]}]
   appState.bars = newBars
+  renderApp(appState)
+})
+
+Bus.subscribe("removeBar", (barIndex) => {
+  appState.bars.splice(barIndex, 1)
+  renderApp(appState)
+})
+
+Bus.subscribe("clearBar", (barIndex) => {
+  appState.bars[barIndex].cellValues = [...emptyCellValues]
+  renderApp(appState)
+})
+
+Bus.subscribe("changeBarChord", ({barIndex, value}) => {
+  appState.bars[barIndex].chord = createChord(value)
+  renderApp(appState)
+})
+
+Bus.subscribe("chordProgressionChanged", progression => {
+  appState.bars = chordProgressions.find(cp => cp.label === progression).bars
+  appState.progression = progression
+  renderApp(appState)
+})
+
+Bus.subscribe("oscTypeChanged", oscType=> {
+  appState.instrument.oscillator.type = oscType
+  setOscTypes(oscType)
   renderApp(appState)
 })
 
@@ -68,14 +115,13 @@ function repeat(time) {
   const totalSteps = appState.bars.length * WIDTH
   const step = index % totalSteps
   const curBarIndex = Math.floor(step / WIDTH)
-  console.log(curBarIndex)
 
   // iterate over rows
   for(let i = 0; i < 6; i++){
     const synth = synths[i];
-    const note = appState.bars[curBarIndex].rows[i].note;
+    const note = appState.bars[curBarIndex].chord.rows[i].note;
 
-    if (appState.bars[curBarIndex].rows[i].cells[step % WIDTH]){
+    if (appState.bars[curBarIndex].cellValues[i][step % WIDTH]){
       synth.triggerAttackRelease(note, '8n', time)
     }
   }
@@ -87,6 +133,9 @@ function repeat(time) {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 function renderApp(appState){
+
+  appState.bars.map(bar => console.log(bar.chord.title))
+
   root.render(
     <React.StrictMode>
       <App appState = {appState} />
@@ -94,4 +143,5 @@ function renderApp(appState){
   );  
 }
 
+window.appState = appState
 renderApp(appState);

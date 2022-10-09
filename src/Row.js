@@ -2,11 +2,12 @@ import React from 'react';
 import Bus from './Bus';
 
 
-function Row({isPlaying, step, barIndex, rowIndex, row }){
+function Row({isPlaying, step, barIndex, rowIndex, row, rowCellValues }){
   return (
     <div className="row">
+      <label>{row.label}</label>
       {
-          row.cells.map((cell, cellIndex) => {
+          rowCellValues.map((cell, cellIndex) => {
             const stepIndex = barIndex * 8 + cellIndex
 
             return <input 

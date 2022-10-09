@@ -21,18 +21,19 @@ code {
   margin: 0;
 }
 
-label {
-  font-size: 32px;
-  width: 32px;
+.bar label {
+  font-size: 14px;
+  width: 16px;
   display: inline-block;
+  line-height: 22px;
 }
 
 input[type="checkbox"] {
   margin: 0;
   padding: 0;
   appearance:none;
-  width: 50px;
-  height: 50px;
+  width: 30px;
+  height: 30px;
   background-color: #fff;
   border: 1px solid green;
   margin-right: 6px;
@@ -54,7 +55,7 @@ input[type="checkbox"]:checked {
 }
 
 .bar{
-  width: 453px;
+  width: 316px;
   background: #efefef;
   display: inline-block;
   padding-left: 4px;
@@ -62,17 +63,22 @@ input[type="checkbox"]:checked {
   border-radius: 8px;
 }
 
-.bar span {
+.bar .barTitle {
   width: 100%;
   text-align: center;
-  display: inline-block;
   background: #efefef;
   border-radius: 8px;
 }
 
-.bar .barButton {
+.bar .barButton.right {
   float: right;
   margin-right: 5px;
+}
+
+
+.bar .barButton.left {
+  float: left;
+  margin-left: 5px;
 }
 
 .topbar{
