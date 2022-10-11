@@ -7,29 +7,12 @@ import Bus from './Bus';
 import createChord from './createChord';
 import { chordProgressions, defaultCellValues, emptyCellValues } from './Consts';
 
+
+// ======================================================================
+//                           App State
+// ======================================================================
+
 const WIDTH = 8;
-
-const synths = [
-  new Tone.Synth(),
-  new Tone.Synth(),
-  new Tone.Synth(),
-  new Tone.Synth(),
-  new Tone.Synth(),
-  new Tone.Synth()
-]
-
-const autoFilter = new Tone.AutoFilter("4n").toDestination()
-
-
-const gain = new Tone.Gain(1.0);
-gain.connect(autoFilter)
-
-const setOscTypes = (type) => synths.forEach(s => {
-  s.oscillator.type = type;
-  s.connect(gain)
-});
-
-Tone.Transport.scheduleRepeat(repeat, '8n');
 
 const appState = {
   step: 0,
@@ -39,8 +22,9 @@ const appState = {
     oscillator: {
       type: "triangle"
     },
-    filters: [
-      {type: "auto", frequency: "4n"}
+    effects: [
+      {type: "distortion", value: 0},
+      // {type: "autofilter", value: "4n"}
     ]
   },
   bars: [
@@ -51,7 +35,41 @@ const appState = {
   ]
 }
 
+// ======================================================================
+//                           Audio Pipeline
+// ======================================================================
+//
+// instruments -> gain -> (effect1 -> effect2 ... ) -> toDestination
+//
+
+const synths = [
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth()
+]
+
+const gain = new Tone.Gain(1.0)
+
+const setOscTypes = (type) => synths.forEach(s => {
+  s.oscillator.type = type
+  s.connect(gain)
+})
+
+Tone.Transport.scheduleRepeat(repeat, '8n')
+
 setOscTypes(appState.instrument.oscillator.type)
+
+// const autoFilter = new Tone.AutoFilter("4n")
+const dist = new Tone.Distortion(0)
+gain.connect(dist)
+dist.toDestination()
+
+// ======================================================================
+//                           Event Handling
+// ======================================================================
 
 Bus.subscribe("app/togglePlay", () => {
   if(appState.isPlaying){
@@ -107,6 +125,18 @@ Bus.subscribe("oscTypeChanged", oscType=> {
   renderApp(appState)
 })
 
+Bus.subscribe("effectPropChanged", ({effectIndex, prop, value}) => {
+  const newEffect = Object.assign({}, appState.instrument.effects[effectIndex])
+  newEffect[prop] = value
+  appState.instrument.effects[effectIndex] = newEffect
+  dist.distortion = value
+  renderApp(appState)
+})
+
+// ======================================================================
+//                           Play Pipeline
+// ======================================================================
+
 let index = 0;
 
 function repeat(time) {
@@ -130,12 +160,12 @@ function repeat(time) {
   renderApp(appState)
 }
 
+// ======================================================================
+//                             Render
+// ======================================================================
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 function renderApp(appState){
-
-  appState.bars.map(bar => console.log(bar.chord.title))
-
   root.render(
     <React.StrictMode>
       <App appState = {appState} />
@@ -143,5 +173,4 @@ function renderApp(appState){
   );  
 }
 
-window.appState = appState
-renderApp(appState);
+renderApp(appState)

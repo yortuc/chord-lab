@@ -4,10 +4,13 @@ import Bus from './Bus';
 import 'antd/dist/antd.css'; // or 'antd/dist/antd.less'
 import { Select } from 'antd';
 import { chordProgressions } from './Consts';
+import { Slider } from 'antd';
+
 
 const { Option } = Select;
 
 const oscTypes = ["sine", "square", "triangle", "sawtooth"]
+const oscFreqs = ["1n", "2n", "4n", "8n"]
 
 function App({ appState }) {
   return (
@@ -28,15 +31,35 @@ function App({ appState }) {
         <div className="bar form">
           <div className="barTitle">Synth</div>
           <div><b>Oscillator</b></div>
-          Type 
+          <div>Type</div> 
           <Select style={{ width: 180 }} value={appState.instrument.oscillator.type} onChange={(value) => Bus.publish("oscTypeChanged", value)}>
             {
               oscTypes.map(osc => 
-                <Option value={osc}>{osc}</Option>)
+                <Option key={osc} value={osc}>{osc}</Option>)
             }
           </Select>
-          
           <div><b>Effects</b></div>
+          {
+            appState.instrument.effects.map((effect, effectIndex) => {
+              switch(effect.type){
+                case "distortion":
+                  return (
+                    <div key={effectIndex}>
+                      <label>Distortion</label>
+                      <Slider 
+                          min={0}
+                          max={1}
+                          step={0.1}
+                          style={{width: 180}} 
+                          value={effect.value} 
+                          onChange={(value)=> Bus.publish("effectPropChanged", { effectIndex, prop: "value", value })} 
+                        />
+                  </div>)
+                default:
+                  return (<div key={effectIndex}></div>)
+              }
+            })
+          }
         </div>
           {
             appState.bars.map((bar, barIndex) => 

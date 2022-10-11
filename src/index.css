@@ -61,6 +61,7 @@ input[type="checkbox"]:checked {
   padding-left: 4px;
   border-left: 1px solid #a9a9a9;
   border-radius: 8px;
+  float: left;
 }
 
 .bar .barTitle {
